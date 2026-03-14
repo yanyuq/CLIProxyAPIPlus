@@ -1,0 +1,62 @@
+name: build-armv7
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Refresh models catalog
+        run: |
+          git fetch --depth 1 https://github.com/router-for-me/models.git main
+          git show FETCH_HEAD:models.json > internal/registry/models/models.json
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Install ARMv7 toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            pkg-config \
+            gcc-arm-linux-gnueabihf \
+            g++-arm-linux-gnueabihf \
+            libc6-dev-armhf-cross
+      - name: Generate Build Metadata
+        run: |
+          echo VERSION=`git rev-parse --short HEAD` >> $GITHUB_ENV
+          echo COMMIT=`git rev-parse --short HEAD` >> $GITHUB_ENV
+          echo BUILD_DATE=`date -u +%Y-%m-%dT%H:%M:%SZ` >> $GITHUB_ENV
+      - name: Build (linux/arm/v7)
+        env:
+          GOOS: linux
+          GOARCH: arm
+          GOARM: "7"
+          CGO_ENABLED: "0"
+        run: |
+          go build -ldflags="-s -w -X 'main.Version=${VERSION}-plus' -X 'main.Commit=${COMMIT}' -X 'main.BuildDate=${BUILD_DATE}'" -o cli-proxy-api-plus-linux-armv7 ./cmd/server/
+      - name: Package tar.gz
+        run: |
+          tar -czf cli-proxy-api-plus-linux-armv7.tar.gz \
+            cli-proxy-api-plus-linux-armv7 \
+            LICENSE \
+            README.md \
+            README_CN.md \
+            config.example.yaml
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: armv7-${{ env.VERSION }}
+          name: ARMv7 ${VERSION}
+          generate_release_notes: false
+          files: |
+            cli-proxy-api-plus-linux-armv7
+            cli-proxy-api-plus-linux-armv7.tar.gz
