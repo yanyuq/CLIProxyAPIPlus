@@ -63,7 +63,7 @@ jobs:
             --build-arg VERSION=${{ env.VERSION }} \
             --build-arg COMMIT=${{ env.COMMIT }} \
             --build-arg BUILD_DATE=${{ env.BUILD_DATE }} \
-            --output type=docker,dest=./cli-proxy-api-plus-armv7-image.tar \
+            --output type=docker,dest=./ghcr-cli-proxy-api-plus-armv7-image.tar \
             .
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -73,4 +73,4 @@ jobs:
           prerelease: ${{ inputs.prerelease }}
           generate_release_notes: false
           files: |
-            cli-proxy-api-plus-armv7-image.tar
+            ghcr-cli-proxy-api-plus-armv7-image.tar
